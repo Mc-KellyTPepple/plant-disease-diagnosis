@@ -1,0 +1,6 @@
+{
+    "project": "Plant Disease Diagnosis",
+    "framework": "PyTorch",
+    "deployment": "Render",
+    "inference": "ONNX Runtime"
+}

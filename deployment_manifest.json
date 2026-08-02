@@ -1,0 +1,5 @@
+{
+    "render": true,
+    "framework": "ONNX Runtime",
+    "ready": true
+}

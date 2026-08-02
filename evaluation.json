@@ -1,0 +1,9 @@
+{
+    "validation_loss": 0.7470872072757796,
+    "accuracy": 0.9939107671295242,
+    "precision": 0.9940111171752632,
+    "recall": 0.9939107671295242,
+    "f1_score": 0.9939115004825768,
+    "num_classes": 38,
+    "validation_images": 17572
+}
