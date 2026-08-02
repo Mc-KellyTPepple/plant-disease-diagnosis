@@ -150,22 +150,15 @@ def predict(image):
     # Text converted to speech
     # ------------------------------------------------
 
-    speech = f"""The predicted disease is {info["name"]}.
-
-    The confidence is {confidence:.1f} percent.
-    
-    Description.
-    
-    {info["description"]}
-    
-    Recommended treatment.
-    
-    {" ".join(info["treatment"])}
-    
-    Prevention tips.
-    
-    {" ".join(info["prevention"])}
-    """
+    speech = (
+        f"The predicted disease is {info['name']}. "
+        f"The confidence is {confidence:.1f} percent. "
+        f"{info['description']} "
+        f"Recommended treatment. "
+        f"{' '.join(info['treatment'])}. "
+        f"Prevention tips. "
+        f"{' '.join(info['prevention'])}."
+    )
 
     # ------------------------------------------------
     # Generate speech
