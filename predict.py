@@ -78,12 +78,30 @@ def predict(image):
     info = DISEASE_INFO.get(
         disease,
         {
+            "name": disease,
+            "cause": "Unknown",
             "description": "Information unavailable.",
-            "treatment": "N/A",
-            "prevention": "N/A"
+            "symptoms": [],
+            "treatment": [],
+            "prevention": []
         }
     )
-
+    cause = info["cause"]
+    
+    symptoms = "\n".join(
+        f"• {item}"
+        for item in info["symptoms"]
+    )
+    
+    treatment = "\n".join(
+        f"• {item}"
+        for item in info["treatment"]
+    )
+    
+    prevention = "\n".join(
+        f"• {item}"
+        for item in info["prevention"]
+    )
     # ------------------------------------------------
     # Top 3 predictions
     # ------------------------------------------------
@@ -103,53 +121,59 @@ def predict(image):
     # Text shown in the interface
     # ------------------------------------------------
 
-    result = f"""
-🌿 Disease
-{disease}
-
-🎯 Confidence
-{confidence:.2f}%
-
-🏆 Top 3 Predictions
-{top3_text}
-
-📝 Description
-{info['description']}
-
-💊 Recommended Treatment
-{info['treatment']}
-
-🛡 Prevention
-{info['prevention']}
-"""
+    result = f"""🌿 Disease
+    {info["name"]}
+    
+    🎯 Confidence
+    {confidence:.2f}%
+    
+    🏆 Top 3 Predictions
+    {top3_text}
+    
+    🦠 Cause
+    {cause}
+    
+    📝 Description
+    {info["description"]}
+    
+    ⚠ Symptoms
+    {symptoms}
+    
+    💊 Recommended Treatment
+    {treatment}
+    
+    🛡 Prevention
+    {prevention}
+    """
 
     # ------------------------------------------------
     # Text converted to speech
     # ------------------------------------------------
 
-    speech = f"""
-The predicted disease is {disease}.
+    speech = f"""The predicted disease is {info["name"]}.
 
-The confidence is {confidence:.1f} percent.
-
-Description.
-
-{info['description']}
-
-Recommended treatment.
-
-{info['treatment']}
-
-Prevention tips.
-
-{info['prevention']}
-"""
+    The confidence is {confidence:.1f} percent.
+    
+    Description.
+    
+    {info["description"]}
+    
+    Recommended treatment.
+    
+    {" ".join(info["treatment"])}
+    
+    Prevention tips.
+    
+    {" ".join(info["prevention"])}
+    """
 
     # ------------------------------------------------
     # Generate speech
     # ------------------------------------------------
-
-    audio = speak(speech)
+    try:
+        audio = speak(speech)
+    except Exception:
+        audio = None
 
     # ------------------------------------------------
     # Return outputs
@@ -181,7 +205,7 @@ def create_demo():
 
             gr.Textbox(
                 label="Diagnosis",
-                lines=22
+                lines=28
             ),
 
             gr.Audio(
@@ -191,7 +215,7 @@ def create_demo():
 
         ],
 
-        title="🌿 Plant Disease Diagnosis",
+        title="🌿 AI Plant Disease Diagnosis System",
 
         description="""
 Upload a clear image of a plant leaf.
@@ -217,3 +241,8 @@ The application displays:
 
         allow_flagging="never"
     )
+
+demo = create_demo()
+
+if __name__ == "__main__":
+    demo.launch(server_name="0.0.0.0", server_port=7860)
