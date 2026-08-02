@@ -1,3 +1,4 @@
+from speech import speak
 import json
 import numpy as np
 import onnxruntime as ort
