@@ -65,9 +65,9 @@ def predict(image):
     probs = np.exp(logits)
     probs /= np.sum(probs)
 
-    # -------------------------
+    # ------------------------------------------------
     # Top prediction
-    # -------------------------
+    # ------------------------------------------------
 
     idx = int(np.argmax(probs))
 
@@ -84,9 +84,9 @@ def predict(image):
         }
     )
 
-    # -------------------------
-    # Top-3 predictions
-    # -------------------------
+    # ------------------------------------------------
+    # Top 3 predictions
+    # ------------------------------------------------
 
     top3 = np.argsort(probs)[::-1][:3]
 
@@ -96,8 +96,12 @@ def predict(image):
 
         top3_text += (
             f"• {labels[str(int(i))]} "
-            f"({probs[i]*100:.2f}%)\n"
+            f"({probs[i] * 100:.2f}%)\n"
         )
+
+    # ------------------------------------------------
+    # Text shown in the interface
+    # ------------------------------------------------
 
     result = f"""
 🌿 Disease
@@ -119,7 +123,39 @@ def predict(image):
 {info['prevention']}
 """
 
-    return image, result
+    # ------------------------------------------------
+    # Text converted to speech
+    # ------------------------------------------------
+
+    speech = f"""
+The predicted disease is {disease}.
+
+The confidence is {confidence:.1f} percent.
+
+Description.
+
+{info['description']}
+
+Recommended treatment.
+
+{info['treatment']}
+
+Prevention tips.
+
+{info['prevention']}
+"""
+
+    # ------------------------------------------------
+    # Generate speech
+    # ------------------------------------------------
+
+    audio = speak(speech)
+
+    # ------------------------------------------------
+    # Return outputs
+    # ------------------------------------------------
+
+    return image, result, audio
 
 
 # ----------------------------------------------------
@@ -138,11 +174,21 @@ def create_demo():
         ),
 
         outputs=[
-            gr.Image(label="Uploaded Image"),
+
+            gr.Image(
+                label="Uploaded Image"
+            ),
+
             gr.Textbox(
                 label="Diagnosis",
                 lines=22
+            ),
+
+            gr.Audio(
+                label="Voice Explanation",
+                autoplay=True
             )
+
         ],
 
         title="🌿 Plant Disease Diagnosis",
@@ -165,6 +211,8 @@ The application displays:
 • Recommended treatment
 
 • Prevention tips
+
+• Voice explanation
 """,
 
         allow_flagging="never"
