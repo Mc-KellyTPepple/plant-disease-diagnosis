@@ -1,241 +1,125 @@
-from speech import speak
-import json
-import numpy as np
-import onnxruntime as ort
-import gradio as gr
-from PIL import Image
-
+from classifier import assess, probabilities, supported_plants
 from disease_info import DISEASE_INFO
 
-
-# ----------------------------------------------------
-# Load model
-# ----------------------------------------------------
-
-MODEL = "model/plant_disease_classifier.onnx"
-
-with open("model/labels.json", "r") as f:
-    labels = json.load(f)
-
-session = ort.InferenceSession(
-    MODEL,
-    providers=["CPUExecutionProvider"]
+PHOTO_TIPS = (
+    "• One leaf, filling most of the frame\n"
+    "• Natural daylight, no flash, no heavy shadows\n"
+    "• Plain background, in focus\n"
+    "• Choose a leaf that shows the problem clearly (not the whole plant)"
 )
 
-input_name = session.get_inputs()[0].name
+
+def _info(label):
+    return DISEASE_INFO.get(label, {
+        "name": label, "cause": "Unknown", "description": "Information unavailable.",
+        "symptoms": [], "treatment": [], "prevention": [],
+    })
 
 
-# ----------------------------------------------------
-# Image preprocessing
-# ----------------------------------------------------
-
-MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+def _bullets(items):
+    return "\n".join(f"• {i}" for i in items)
 
 
-def preprocess(img):
-
-    img = img.convert("RGB")
-    img = img.resize((224, 224))
-
-    x = np.array(img).astype(np.float32) / 255.0
-    x = (x - MEAN) / STD
-
-    x = np.transpose(x, (2, 0, 1))
-    x = np.expand_dims(x, 0)
-
-    return x.astype(np.float32)
+def _top_text(top):
+    return "\n".join(f"• {_info(lab)['name']} ({p * 100:.1f}%)" for _, lab, p in top)
 
 
-# ----------------------------------------------------
-# Prediction
-# ----------------------------------------------------
+def build_report(probs):
+    """Return (report_text, speech_text) for a probability vector."""
+    a = assess(probs)
+    top = a["top"]
+    _, label, p1 = top[0]
+    info = _info(label)
+    plant_line = f"Looks like a {a['plant'].replace('_', ' ').replace(',', '')} leaf.\n\n" if a["plant"] else ""
+
+    if a["level"] == "high":
+        text = "\n".join([
+            "🌿 Diagnosis", info["name"], "",
+            "🎯 Confidence", f"{p1 * 100:.1f}%", "",
+            "🏆 Top 3 Predictions", _top_text(top), "",
+            "🦠 Cause", info["cause"], "",
+            "📝 Description", info["description"], "",
+            "⚠ Symptoms", _bullets(info["symptoms"]), "",
+            "💊 Recommended Treatment", _bullets(info["treatment"]), "",
+            "🛡 Prevention", _bullets(info["prevention"]),
+        ])
+        speech = (
+            f"The predicted disease is {info['name']}. The confidence is {p1 * 100:.0f} percent. "
+            f"{info['description']} Recommended treatment. {' '.join(info['treatment'])} "
+            f"Prevention tips. {' '.join(info['prevention'])}"
+        )
+        return text, speech
+
+    if a["level"] == "medium":
+        second = _info(top[1][1])
+        text = "\n".join([
+            "🤔 Possible diagnosis, NOT certain", "",
+            f"{plant_line}Most likely: {info['name']} ({p1 * 100:.1f}%)",
+            "", "🏆 Candidates", _top_text(top), "",
+            f"⚠ Check the leaf against these symptoms",
+            f"{info['name']}:", _bullets(info["symptoms"]), "",
+            f"{second['name']}:", _bullets(second["symptoms"]), "",
+            "💊 Only if the symptoms above match your plant",
+            _bullets(info["treatment"]), "",
+            "📷 For a firmer answer, retake the photo:", PHOTO_TIPS, "",
+            "If it keeps coming out unclear, ask a local agricultural extension officer.",
+        ])
+        speech = (
+            f"I am not certain. The most likely problem is {info['name']}, at {p1 * 100:.0f} percent, "
+            f"but it could also be {second['name']}. Please compare the listed symptoms with your leaf, "
+            f"or retake the photo in good light."
+        )
+        return text, speech
+
+    text = "\n".join([
+        "❓ I can't tell from this photo", "",
+        f"{plant_line}The model could not match this leaf to a known condition with enough "
+        f"confidence (best guess only {p1 * 100:.1f}%). No treatment is suggested, because acting "
+        f"on a wrong diagnosis can waste money or harm the crop.", "",
+        "Weak hints only:", _top_text(top), "",
+        "📷 Try again:", PHOTO_TIPS, "",
+        "This model only knows: " + ", ".join(supported_plants()) + ".",
+        "Other crops, non-leaf images, and pest or nutrient problems it wasn't trained on "
+        "can't be diagnosed reliably.",
+    ])
+    speech = (
+        "I could not identify this leaf with enough confidence. "
+        "Please retake the photo with one leaf in natural light on a plain background."
+    )
+    return text, speech
+
 
 def predict(image):
-
-    x = preprocess(image)
-
-    logits = session.run(
-        None,
-        {input_name: x}
-    )[0][0]
-
-    logits = logits - np.max(logits)
-
-    probs = np.exp(logits)
-    probs /= np.sum(probs)
-
-    # ------------------------------------------------
-    # Top prediction
-    # ------------------------------------------------
-
-    idx = int(np.argmax(probs))
-
-    disease = labels[str(idx)]
-
-    confidence = float(probs[idx] * 100)
-
-    info = DISEASE_INFO.get(
-        disease,
-        {
-            "name": disease,
-            "cause": "Unknown",
-            "description": "Information unavailable.",
-            "symptoms": [],
-            "treatment": [],
-            "prevention": []
-        }
-    )
-    cause = info["cause"]
-    
-    symptoms = "\n".join(
-        f"• {item}"
-        for item in info["symptoms"]
-    )
-    
-    treatment = "\n".join(
-        f"• {item}"
-        for item in info["treatment"]
-    )
-    
-    prevention = "\n".join(
-        f"• {item}"
-        for item in info["prevention"]
-    )
-    # ------------------------------------------------
-    # Top 3 predictions
-    # ------------------------------------------------
-
-    top3 = np.argsort(probs)[::-1][:3]
-
-    top3_text = ""
-
-    for i in top3:
-
-        top3_text += (
-            f"• {labels[str(int(i))]} "
-            f"({probs[i] * 100:.2f}%)\n"
-        )
-
-    # ------------------------------------------------
-    # Text shown in the interface
-    # ------------------------------------------------
-
-    result = f"""🌿 Disease
-    {info["name"]}
-    
-    🎯 Confidence
-    {confidence:.2f}%
-    
-    🏆 Top 3 Predictions
-    {top3_text}
-    
-    🦠 Cause
-    {cause}
-    
-    📝 Description
-    {info["description"]}
-    
-    ⚠ Symptoms
-    {symptoms}
-    
-    💊 Recommended Treatment
-    {treatment}
-    
-    🛡 Prevention
-    {prevention}
-    """
-
-    # ------------------------------------------------
-    # Text converted to speech
-    # ------------------------------------------------
-
-    speech = (
-        f"The predicted disease is {info['name']}. "
-        f"The confidence is {confidence:.1f} percent. "
-        f"{info['description']} "
-        f"Recommended treatment. "
-        f"{' '.join(info['treatment'])}. "
-        f"Prevention tips. "
-        f"{' '.join(info['prevention'])}."
-    )
-
-    # ------------------------------------------------
-    # Generate speech
-    # ------------------------------------------------
+    if image is None:
+        return None, "Please upload a leaf photo.", None
+    report, speech = build_report(probabilities(image))
     try:
+        from speech import speak
         audio = speak(speech)
     except Exception:
         audio = None
+    return image, report, audio
 
-    # ------------------------------------------------
-    # Return outputs
-    # ------------------------------------------------
-
-    return image, result, audio
-
-
-# ----------------------------------------------------
-# Gradio UI
-# ----------------------------------------------------
 
 def create_demo():
+    import gradio as gr
 
     return gr.Interface(
-
         fn=predict,
-
-        inputs=gr.Image(
-            type="pil",
-            label="Upload a Plant Leaf"
-        ),
-
+        inputs=gr.Image(type="pil", label="Upload a Plant Leaf"),
         outputs=[
-
-            gr.Image(
-                label="Uploaded Image"
-            ),
-
-            gr.Textbox(
-                label="Diagnosis",
-                lines=28
-            ),
-
-            gr.Audio(
-                label="Voice Explanation",
-                autoplay=True
-            )
-
+            gr.Image(label="Uploaded Image"),
+            gr.Textbox(label="Diagnosis", lines=28),
+            gr.Audio(label="Voice Explanation", autoplay=True),
         ],
-
         title="🌿 AI Plant Disease Diagnosis System",
-
-        description="""
-Upload a clear image of a plant leaf.
-
-The AI model predicts the disease using a MobileNetV3-Large model exported to ONNX Runtime.
-
-The application displays:
-
-• Disease name
-
-• Confidence score
-
-• Top-3 predictions
-
-• Disease description
-
-• Recommended treatment
-
-• Prevention tips
-
-• Voice explanation
-""",
-
-        allow_flagging="never"
+        description=(
+            "Upload a clear image of a single plant leaf. The app reports a diagnosis only when "
+            "the model is confident; otherwise it shows possibilities or asks for a better photo."
+        ),
+        allow_flagging="never",
     )
 
-demo = create_demo()
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    create_demo().launch(server_name="0.0.0.0", server_port=7860)
