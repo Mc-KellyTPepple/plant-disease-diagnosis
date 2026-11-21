@@ -1,9 +1,144 @@
 {
-    "validation_loss": 0.7470872072757796,
-    "accuracy": 0.9939107671295242,
-    "precision": 0.9940111171752632,
-    "recall": 0.9939107671295242,
-    "f1_score": 0.9939115004825768,
-    "num_classes": 38,
-    "validation_images": 17572
+  "dataset": "PlantDoc test split (real field photos, CC BY 4.0), held out from training",
+  "model": "LeafScan ConvNeXt-T int8 (Marconcini, CC BY-SA 4.0)",
+  "preprocess": "crop",
+  "photos": 236,
+  "accuracy": [
+    71.2,
+    65.1,
+    76.6
+  ],
+  "right_crop_pct": [
+    87.3,
+    82.4,
+    90.9
+  ],
+  "healthy_vs_diseased_pct": [
+    95.3,
+    91.8,
+    97.4
+  ],
+  "threshold": 0.747735857963562,
+  "answered": [
+    65.3,
+    59.0,
+    71.0
+  ],
+  "right_when_answered": [
+    85.1,
+    78.6,
+    89.8
+  ],
+  "per_class": {
+    "Apple Scab Leaf": {
+      "photos": 10,
+      "correct": 6
+    },
+    "Apple leaf": {
+      "photos": 9,
+      "correct": 6
+    },
+    "Apple rust leaf": {
+      "photos": 10,
+      "correct": 8
+    },
+    "Bell_pepper leaf": {
+      "photos": 8,
+      "correct": 7
+    },
+    "Bell_pepper leaf spot": {
+      "photos": 9,
+      "correct": 7
+    },
+    "Blueberry leaf": {
+      "photos": 11,
+      "correct": 8
+    },
+    "Cherry leaf": {
+      "photos": 10,
+      "correct": 8
+    },
+    "Corn Gray leaf spot": {
+      "photos": 4,
+      "correct": 1
+    },
+    "Corn leaf blight": {
+      "photos": 12,
+      "correct": 7
+    },
+    "Corn rust leaf": {
+      "photos": 10,
+      "correct": 9
+    },
+    "Peach leaf": {
+      "photos": 9,
+      "correct": 7
+    },
+    "Potato leaf early blight": {
+      "photos": 8,
+      "correct": 4
+    },
+    "Potato leaf late blight": {
+      "photos": 8,
+      "correct": 5
+    },
+    "Raspberry leaf": {
+      "photos": 7,
+      "correct": 7
+    },
+    "Soyabean leaf": {
+      "photos": 8,
+      "correct": 5
+    },
+    "Squash Powdery mildew leaf": {
+      "photos": 6,
+      "correct": 5
+    },
+    "Strawberry leaf": {
+      "photos": 8,
+      "correct": 8
+    },
+    "Tomato Early blight leaf": {
+      "photos": 9,
+      "correct": 7
+    },
+    "Tomato Septoria leaf spot": {
+      "photos": 11,
+      "correct": 8
+    },
+    "Tomato leaf": {
+      "photos": 8,
+      "correct": 5
+    },
+    "Tomato leaf bacterial spot": {
+      "photos": 9,
+      "correct": 0
+    },
+    "Tomato leaf late blight": {
+      "photos": 10,
+      "correct": 8
+    },
+    "Tomato leaf mosaic virus": {
+      "photos": 10,
+      "correct": 3
+    },
+    "Tomato leaf yellow virus": {
+      "photos": 6,
+      "correct": 5
+    },
+    "Tomato mold leaf": {
+      "photos": 6,
+      "correct": 4
+    },
+    "grape leaf": {
+      "photos": 12,
+      "correct": 12
+    },
+    "grape leaf black rot": {
+      "photos": 8,
+      "correct": 8
+    }
+  },
+  "note": "Values are [percent, lower, upper] with 95% Wilson intervals. The 'Tomato two spotted spider mites leaf' folder is mapped but may be absent.",
+  "published_by_model_author": "int8 on 228 PlantDoc test photos: 71.9% accuracy; answers 66%, 84.7% of those right"
 }
