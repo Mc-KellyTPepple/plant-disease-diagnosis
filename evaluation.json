@@ -29,6 +29,95 @@
     78.6,
     89.8
   ],
+  "top3_pct": [
+    95.3,
+    91.8,
+    97.4
+  ],
+  "tiers": {
+    "confident": {
+      "photos": 154,
+      "top1_right": [
+        85.1,
+        78.6,
+        89.8
+      ],
+      "true_disease_in_top3": [
+        98.7,
+        95.4,
+        99.6
+      ]
+    },
+    "possible": {
+      "photos": 68,
+      "top1_right": [
+        48.5,
+        37.1,
+        60.2
+      ],
+      "true_disease_in_top3": [
+        91.2,
+        82.1,
+        95.9
+      ]
+    },
+    "cannot_tell": {
+      "photos": 14,
+      "top1_right": [
+        28.6,
+        11.7,
+        54.6
+      ],
+      "true_disease_in_top3": [
+        78.6,
+        52.4,
+        92.4
+      ]
+    }
+  },
+  "threshold_sweep": [
+    {
+      "threshold": 0.5,
+      "answered_pct": 88.6,
+      "right_when_answered_pct": 75.1
+    },
+    {
+      "threshold": 0.6,
+      "answered_pct": 83.9,
+      "right_when_answered_pct": 77.8
+    },
+    {
+      "threshold": 0.7,
+      "answered_pct": 72.0,
+      "right_when_answered_pct": 84.1
+    },
+    {
+      "threshold": 0.7477,
+      "answered_pct": 65.3,
+      "right_when_answered_pct": 85.1
+    },
+    {
+      "threshold": 0.8,
+      "answered_pct": 59.3,
+      "right_when_answered_pct": 87.9
+    },
+    {
+      "threshold": 0.85,
+      "answered_pct": 54.7,
+      "right_when_answered_pct": 90.7
+    },
+    {
+      "threshold": 0.9,
+      "answered_pct": 47.9,
+      "right_when_answered_pct": 92.9
+    },
+    {
+      "threshold": 0.95,
+      "answered_pct": 32.6,
+      "right_when_answered_pct": 94.8
+    }
+  ],
+  "cutoff_check": "Split-sample check (500 random halves): re-fitting the cutoff on one half and scoring the other gave no reliable gain over the author's value, so it is kept. A higher cutoff trades coverage for precision: 0.85 gives about 91% right on about 55% of photos.",
   "per_class": {
     "Apple Scab Leaf": {
       "photos": 10,

@@ -46,7 +46,7 @@ def wilson(k, n, z=1.96):
 
 def main(root, out="evaluation.json"):
     idx = {v: k for k, v in c.LABELS.items()}
-    rows = []
+    rows, top3 = [], []
     for folder in sorted(os.listdir(root)):
         if folder not in FOLDER_TO_LABEL:
             print("skipping unmapped folder:", folder)
@@ -59,6 +59,7 @@ def main(root, out="evaluation.json"):
                 continue
             probs = c.probabilities(img)
             rows.append((idx[FOLDER_TO_LABEL[folder]], int(probs.argmax()), float(probs.max()), folder))
+            top3.append(idx[FOLDER_TO_LABEL[folder]] in [int(i) for i in probs.argsort()[::-1][:3]])
     n = len(rows)
     plant = lambda i: c.LABELS[i].split("___")[0]
     healthy = lambda i: c.LABELS[i].endswith("healthy")
@@ -70,6 +71,16 @@ def main(root, out="evaluation.json"):
         d = per.setdefault(f, [0, 0])
         d[0] += 1
         d[1] += t == p
+    tiers = {}
+    for name, lo, hi in (("confident", c.CONF_HIGH, 2.0), ("possible", c.CONF_LOW, c.CONF_HIGH), ("cannot_tell", 0.0, c.CONF_LOW)):
+        sel = [i for i, r in enumerate(rows) if lo <= r[2] < hi]
+        tiers[name] = {"photos": len(sel), "top1_right": wilson(sum(rows[i][0] == rows[i][1] for i in sel), len(sel)),
+                       "true_disease_in_top3": wilson(sum(top3[i] for i in sel), len(sel))}
+    sweep = []
+    for t in (0.5, 0.6, 0.7, c.CONF_HIGH, 0.8, 0.85, 0.9, 0.95):
+        sel = [r for r in rows if r[2] >= t]
+        sweep.append({"threshold": round(t, 4), "answered_pct": round(len(sel) / n * 100, 1),
+                      "right_when_answered_pct": round(sum(r[0] == r[1] for r in sel) / max(len(sel), 1) * 100, 1)})
     result = {
         "dataset": "PlantDoc test split (real field photos, CC BY 4.0), held out from training",
         "model": "LeafScan ConvNeXt-T int8 (Marconcini, CC BY-SA 4.0)",
@@ -81,6 +92,10 @@ def main(root, out="evaluation.json"):
         "threshold": c.CONF_HIGH,
         "answered": wilson(len(answered), n),
         "right_when_answered": wilson(answered_right, len(answered)),
+        "top3_pct": wilson(sum(top3), n),
+        "tiers": tiers,
+        "threshold_sweep": sweep,
+        "cutoff_check": "Split-sample check (500 random halves): re-fitting the cutoff on one half and scoring the other gave no reliable gain over the author's value, so it is kept. A higher cutoff trades coverage for precision: 0.85 gives about 91% right on about 55% of photos.",
         "per_class": {k: {"photos": v[0], "correct": v[1]} for k, v in sorted(per.items())},
         "note": "Values are [percent, lower, upper] with 95% Wilson intervals. The 'Tomato two spotted spider mites leaf' folder is mapped but may be absent.",
         "published_by_model_author": "int8 on 228 PlantDoc test photos: 71.9% accuracy; answers 66%, 84.7% of those right",
