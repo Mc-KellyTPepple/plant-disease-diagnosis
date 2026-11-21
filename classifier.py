@@ -27,9 +27,12 @@ CONF_HIGH = float(os.environ.get("LEAFSCAN_THRESHOLD", _variant["threshold"]))
 # 0.40 is my own untuned choice; adjust with LEAFSCAN_LOW after testing on your photos.
 CONF_LOW = float(os.environ.get("LEAFSCAN_LOW", 0.40))
 
-# ASSUMPTION: the model card doesn't state its resize method. It mentions the browser demo
-# resizes on a canvas, which suggests a plain resize to 224x224 (no center crop), and
-# standard ImageNet normalisation. If results look wrong, check this first.
+# Preprocessing: the model card does not state it. The backbone's default (timm convnext_tiny.fb_in22k_ft_in1k) is
+# resize shorter side to 224/0.875 = 256, centre-crop 224, ImageNet normalisation. On the 236 PlantDoc test photos this
+# reproduces the author's published int8 numbers (71.9% accuracy, 66% answered, 84.7% right) better than a plain
+# 224x224 squash (see evaluation.json). Change PREPROCESS to "squash" to compare.
+PREPROCESS = os.environ.get("LEAFSCAN_PREPROCESS", "crop")
+CROP_PCT = 0.875
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
@@ -42,7 +45,16 @@ _input_name = _session.get_inputs()[0].name
 def preprocess(img):
     from PIL import Image
 
-    img = img.convert("RGB").resize((IMG_SIZE, IMG_SIZE), Image.BICUBIC)
+    img = img.convert("RGB")
+    if PREPROCESS == "squash":
+        img = img.resize((IMG_SIZE, IMG_SIZE), Image.BICUBIC)
+    else:
+        w, h = img.size
+        scale = round(IMG_SIZE / CROP_PCT) / min(w, h)
+        img = img.resize((max(IMG_SIZE, round(w * scale)), max(IMG_SIZE, round(h * scale))), Image.BICUBIC)
+        w, h = img.size
+        left, top = (w - IMG_SIZE) // 2, (h - IMG_SIZE) // 2
+        img = img.crop((left, top, left + IMG_SIZE, top + IMG_SIZE))
     x = np.asarray(img).astype(np.float32) / 255.0
     x = (x - MEAN) / STD
     return np.expand_dims(np.transpose(x, (2, 0, 1)), 0).astype(np.float32)
