@@ -117,6 +117,11 @@ def create_demo():
             "Upload a clear image of a single plant leaf. The app reports a diagnosis only when "
             "the model is confident; otherwise it shows possibilities or asks for a better photo."
         ),
+        article=(
+            "Model: LeafScan ConvNeXt-T by Marconcini (CC BY-SA 4.0), trained on PlantVillage "
+            "(CC BY-SA 3.0) and PlantDoc (CC BY 4.0). A decision aid only, not a substitute "
+            "for an agronomist."
+        ),
         allow_flagging="never",
     )
 
